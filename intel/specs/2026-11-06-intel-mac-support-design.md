@@ -88,13 +88,16 @@ usuario lo pida.
 - `packages/{node,mysql,mongodb,meilisearch,typesense,cloudflared}/mirror.sh`: caso `macos-x64`
   con el asset de cada proveedor (`darwin-x64`, `macos15-x86_64`, `macos-x86_64`, `macos-amd64`,
   `darwin-amd64`); se mantienen las verificaciones de firma o checksum de cada script.
-- `versions.json` (solo la copia local): plataforma `macos-x64`, líneas del alcance de la sección 3.
-- `scripts/verify-macos.sh`: en Intel Homebrew vive en `/usr/local`, que no se puede ocultar como
-  `/opt/homebrew` en CI. La prueba "sin Homebrew" se sustituye por la comprobación con `otool`
-  (ningún binario enlaza `/usr/local`, `/opt/homebrew` ni el árbol de compilación) más ejecutar
-  los smoke tests con un `PATH` y un entorno saneados.
+- `versions.json` y `scripts/verify-macos.sh` **no se modifican** (descubierto al escribir el plan):
+  `build-local.sh` solo lee de `versions.json` los ajustes que no dependen de la plataforma
+  (`env` de cada paquete y `.php.macos`), y `verify-macos.sh` ya usa `otool -L` y rechaza
+  cualquier enlace a `/usr/local`, `/opt/homebrew` o el árbol de compilación, que es justo la
+  comprobación que hace falta en Intel, donde Homebrew vive en `/usr/local` y no se puede ocultar
+  como `/opt/homebrew` en CI. La prueba "sin Homebrew" de CI se sustituye por ejecutar los smoke
+  tests con un `PATH` de sistema (`/usr/bin:/bin:/usr/sbin:/sbin`) y un entorno vacío (`env -i`).
 - `build-local.sh`: reemplaza a GitHub Actions. Ejecuta, por paquete, build o mirror, verificación,
   smoke test, empaquetado (`<pkg>-<ver>-build<N>-macos-x64.tar.gz`) y copia a `~/.flock-intel/`.
+  Los directorios de compilación van en `flock_intel_binaries/work/` (ignorado por git).
 - `tools/localmanifest/` (Go): escanea los paquetes, calcula SHA-256 y tamaño, escribe el
   manifiesto (esquema 1) en los tres canales con las mismas entradas, caducidad de 365 días y
   `serial` = hora Unix, y lo firma. Incluye `keygen` y `verify` (reutilizando la verificación de
