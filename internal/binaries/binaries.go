@@ -130,9 +130,9 @@ func (m *Manifest) Versions(pkg, platform string) []Version {
 	return out
 }
 
-// Platform names this machine in the manifest ("macos-arm64", "windows-x64", "linux-x64"); ""
-// where Flock publishes no packages (Flock supports Apple Silicon Macs, Windows x64 and Linux on
-// x64 and arm64).
+// Platform names this machine in the manifest ("macos-arm64", "macos-x64", "windows-x64",
+// "linux-x64", "linux-arm64"); "" where Flock has no packages. Upstream publishes no macos-x64
+// packages: on an Intel Mac they are the ones built locally (see local.go).
 func Platform() string {
 	return platform(runtime.GOOS, runtime.GOARCH)
 }
@@ -141,6 +141,8 @@ func platform(goos, goarch string) string {
 	switch {
 	case goos == "darwin" && goarch == "arm64":
 		return "macos-arm64"
+	case goos == "darwin" && goarch == "amd64":
+		return "macos-x64"
 	case goos == "windows" && goarch == "amd64":
 		return "windows-x64"
 	case goos == "linux" && goarch == "amd64":
