@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.0](https://github.com/flock-php/flock/compare/v1.0.0...v1.1.0) (2026-11-06)
+
+
+### Features
+
+* **proxy:** proxy .test domains to local services ([ddff58c](https://github.com/flock-php/flock/commit/ddff58c2d6ab106cacfd7e4430f8a4a1a1cf0cbc)), closes [#73](https://github.com/flock-php/flock/issues/73)
+
+
+### Bug Fixes
+
+* **rustfs:** run RustFS from its data directory so the volume has no space ([8b63364](https://github.com/flock-php/flock/commit/8b63364b0006d66d47e348c9466e0a0da7d5452c))
+* **rustfs:** run RustFS from its data directory so the volume has no space ([d93fac8](https://github.com/flock-php/flock/commit/d93fac895934c6e65c59f9fff4757d63b3809b56)), closes [#62](https://github.com/flock-php/flock/issues/62)
+
 ## 1.0.0 (2026-11-02)
 
 
