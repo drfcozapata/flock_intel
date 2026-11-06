@@ -32,8 +32,15 @@ if [[ "$BUILD" != 0 && -n "${SPARKLE_PUBLIC_KEY:-}" ]]; then
 	<key>SUEnableAutomaticChecks</key><true/>"
 fi
 
-# Apple silicon only: Flock doesn't support Intel Macs, and an arm64-only app won't open on one.
-ARCHS=(--arch arm64)
+# ARCH=arm64 (Apple silicon) or x86_64 (Intel); default: this Mac's. An app is built for one
+# architecture: the Go CLI inside it, and the packages Flock downloads, are not universal.
+ARCH="${ARCH:-$(uname -m)}"
+case "$ARCH" in
+	arm64) GOARCH=arm64 ;;
+	x86_64) GOARCH=amd64 ;;
+	*) echo "ARCH must be arm64 or x86_64, not $ARCH" >&2; exit 1 ;;
+esac
+ARCHS=(--arch "$ARCH")
 swift build -c release --product FlockBar "${ARCHS[@]}"
 
 APP="$OUT/Flock.app"
@@ -56,7 +63,7 @@ cp Resources/AppIcon.icns Resources/MenuBar*.png Resources/LogoMark*.png "$APP/C
 cp ../LICENSE ../NOTICE ../THIRD_PARTY_NOTICES "$APP/Contents/Resources/"
 
 # The CLI, built like `make build`; `flock install` copies it to the data dir.
-(cd .. && CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w -X flock/internal/cli.Version=$VERSION" \
+(cd .. && CGO_ENABLED=0 GOOS=darwin GOARCH="$GOARCH" go build -ldflags "-s -w -X flock/internal/cli.Version=$VERSION" \
 	-o "build/macos/Flock.app/Contents/MacOS/flock" ./cmd/flock)
 
 cat > "$APP/Contents/Info.plist" <<PLIST
