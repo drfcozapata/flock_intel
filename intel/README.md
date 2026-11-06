@@ -111,7 +111,10 @@ Los directorios de compilación (`work/spc-*`) ocupan unos 25 GB y se pueden bor
 
 **Verificaciones.** `go vet`, `gofmt` y `go test ./...` pasan completos; `swift test` pasa
 (73 pruebas, con Swift Testing). La app y el CLI compilados son `x86_64` y llevan embebida la
-clave pública propia, no la de upstream. `verify-macos.sh` confirma que los Mach-O de Valkey (3),
+clave pública propia, no la de upstream. Con Flock ya instalado y sus servicios en el 3307
+(MariaDB) y el 5433 (PostgreSQL), como en esta instalación, `TestCatalogEndpoints` y
+`TestServiceStartStopAndPorts` de `internal/api` fallan porque piden esos mismos puertos
+(`port 3307 is used by Flock`); con los puertos libres pasan. `verify-macos.sh` confirma que los Mach-O de Valkey (3),
 PostgreSQL (119) y MariaDB (77) solo enlazan con bibliotecas del sistema.
 
 **Prueba aislada** (daemon con `FLOCK_HOME` temporal y puertos propios, sin tocar el sistema): el
