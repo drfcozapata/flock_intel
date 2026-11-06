@@ -17,3 +17,5 @@
 /design/icongen/obj/
 .omc/
 /linux/target/
+# Intel Mac fork: a backup copy of the manifest signing key must never be committed
+/intel/key/
