@@ -1,6 +1,6 @@
 # Soporte de Flock para Mac Intel: plan de implementación
 
-> **Para agentes que lo ejecuten:** sub-skill requerida: `superpowers:subagent-driven-development` (recomendada) o `superpowers:executing-plans`. Los pasos usan casillas (`- [ ]`) para el seguimiento.
+> **Para agentes que lo ejecuten:** sub-skill requerida: `superpowers:subagent-driven-development`. Los pasos usan casillas (`- [ ]`) para el seguimiento.
 
 **Objetivo:** que Flock (app, CLI, daemon y paquetes descargables) funcione al 100 % en un MacBook Pro Intel x86_64, con binarios compilados o espejados en el propio Mac y un manifiesto firmado con una clave del usuario.
 
@@ -515,7 +515,7 @@ En `Makefile`, tras la línea `GOOS=darwin  GOARCH=arm64 ...` añade:
 
 ```bash
 cd "$HOME/Sites/Others/flock_intel" && SKIP_DMG=1 make app 2>&1 | tail -5
-lipo -archs build/macos/Flock.app/Contents/MacOS/FlockBar build/macos/Flock.app/Contents/MacOS/flock
+for f in FlockBar flock; do printf '%-9s ' $f; lipo -archs build/macos/Flock.app/Contents/MacOS/$f; done
 codesign --verify --strict --deep build/macos/Flock.app && echo "firma ok"
 ```
 
@@ -1145,7 +1145,7 @@ Esperado: `private key …/manifest.key`, `public key …/internal/binaries/mani
 
 - [ ] **Paso 2: 🛑 Pedir al usuario que respalde la clave privada**
 
-Dile que copie el contenido de `~/.config/flock-intel/manifest.key` a su gestor de contraseñas. Si se pierde, hay que generar otra, recompilar la app (la pública va embebida) y volver a firmar. No muestres la clave en la conversación.
+Copia el contenido de `~/.config/flock-intel/manifest.key` al subdirectorio /Users/drfcozapata/Sites/Others/flock_intel/intel/key. Si se pierde, hay que generar otra, recompilar la app (la pública va embebida) y volver a firmar. No muestres la clave en la conversación.
 
 - [ ] **Paso 3: Comprobar que Flock acepta la clave**
 
@@ -1406,14 +1406,27 @@ Con la herramienta Edit, tras la línea `macos-arm64)` de cada archivo:
 
 ```bash
 cd "$HOME/Sites/Others/flock_intel_binaries"
-for spec in "node 16.20.2" "node 18.20.8" "node 20.20.2" "node 24.22.2" "node 26.13.0" \
-            "cloudflared 2026.10.7" "typesense 29.1" "typesense 30.2" "meilisearch 1.56.1" \
-            "mongodb 7.0.45" "mongodb 8.0.34" "mongodb 9.0.4" \
-            "mysql 8.0.46" "mysql 9.7.4"; do
-  set -- $spec
-  if ./build-local.sh mirror "$1" "$2" >"work/mirror-$1-$2.log" 2>&1; then echo "OK    $spec"; else echo "FALLA $spec (work/mirror-$1-$2.log)"; fi
-done
+while read -r pkg ver; do
+  if ./build-local.sh mirror "$pkg" "$ver" >"work/mirror-$pkg-$ver.log" 2>&1; then echo "OK    $pkg $ver"; else echo "FALLA $pkg $ver (work/mirror-$pkg-$ver.log)"; fi
+done <<'EOF'
+node 16.20.2
+node 18.20.8
+node 20.20.2
+node 24.22.2
+node 26.13.0
+cloudflared 2026.10.7
+typesense 29.1
+typesense 30.2
+meilisearch 1.56.1
+mongodb 7.0.45
+mongodb 8.0.34
+mongodb 9.0.4
+mysql 8.0.46
+mysql 9.7.4
+EOF
 ```
+
+(El shell de la herramienta Bash es zsh, que no separa palabras en `set -- $spec` como bash: por eso se usa `while read`, que funciona igual en ambos.)
 
 Esperado: `OK` para todos. Para un `FALLA`, lee la última parte del log (`tail -20`) y corrige la causa (nombre de asset, versión que ya no existe → usa la siguiente de su línea).
 
@@ -1639,7 +1652,7 @@ Esperado: sin salida (todo `ok`). Si solo falla `TestTunnelRunsOnceConnected`, r
 cd "$HOME/Sites/Others/flock_intel"
 CGO_ENABLED=0 go build -o bin/flock ./cmd/flock
 SKIP_DMG=1 make app 2>&1 | tail -3
-lipo -archs build/macos/Flock.app/Contents/MacOS/FlockBar build/macos/Flock.app/Contents/MacOS/flock
+for f in FlockBar flock; do printf '%-9s ' $f; lipo -archs build/macos/Flock.app/Contents/MacOS/$f; done
 ```
 
 Esperado: `x86_64` dos veces.
@@ -1693,13 +1706,13 @@ cd "$HOME/Sites/Others/flock_intel/macos" && swift test 2>&1 | tail -4
 
 - [ ] **Paso 1: 🛑 Elegir con el usuario el proyecto Laravel de prueba**
 
-Pregúntale cuál de sus proyectos usar y con qué versión de PHP (8.3, 8.4 u 8.5) y base de datos (PostgreSQL o MariaDB). No continúes sin la respuesta.
+Como proyecto de prueba, usa el que se encuentra en /Users/drfcozapata/Sites/Laravel/example-app desarrollado con PHP 8.3 y BD PostgreSQL llamada 'example' (usuario y contraseña, los de su `.env`; no se copian en este plan).
 
-- [ ] **Paso 2: 🛑 Preparar el sistema (con confirmación de cada punto)**
+- [ ] **Paso 2: 🛑 Preparar el sistema**
 
 1. Parar el Apache de Homebrew, que ocupa el puerto 80: `! brew services stop httpd`.
-2. Decidir con el usuario qué hacer con la MariaDB de Homebrew (3306): lo más simple es instalar la de Flock en otro puerto (`--port 3307`) hasta migrar los datos con `mysqldump`.
-3. Avisarle de que Flock antepone sus versiones de `php`, `composer` y `node` en el `PATH` y que hoy el `php` y `composer` en uso salen de Herd Lite (`~/.config/herd-lite/bin`): después de `flock install`, el orden de las rutas decide cuál gana.
+2. Qué hacer con la MariaDB de Homebrew (3306): instala la de Flock en otro puerto (`--port 3307`) hasta migrar los datos con `mysqldump`.
+3. Avisarle al usuario (sin detener el proceso de implementación) de que Flock antepone sus versiones de `php`, `composer` y `node` en el `PATH` y que hoy el `php` y `composer` en uso salen de Herd Lite (`~/.config/herd-lite/bin`): después de `flock install`, el orden de las rutas decide cuál gana.
 
 - [ ] **Paso 3: 🛑 Instalar y abrir la app**
 
