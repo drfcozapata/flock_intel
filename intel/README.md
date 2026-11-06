@@ -122,3 +122,30 @@ respondieron consultas desde `pdo_pgsql` y `pdo_mysql` del PHP de Flock; Valkey 
 Meilisearch y Typesense, `/health`. Dos detalles de uso: `flock services install postgres` no admite
 `--port` (el puerto de PostgreSQL sale de `ports.postgres` en la configuración, por defecto 5432) y
 `flock services` sin argumentos es el listado (`flock services list` pide el nombre de un servicio).
+
+**Instalación real** (app copiada a `/Applications`, asistente *Set up Flock* con contraseña, y un
+proyecto Laravel 13 enlazado como `https://example-app.test`):
+
+- El asistente deja el daemon en marcha, `/etc/resolver/test` apuntando al DNS de Flock, la CA local
+  de confianza y los atajos al principio del `PATH` (una línea al final de `~/.zshrc`, así que gana
+  a Herd Lite y a nvm en shells nuevos). Instala PHP 8.5 y Node 26 como predeterminados desde
+  `~/.flock-intel`. El `PHP_INI_SCAN_DIR` que Herd Lite exporta no interfiere: Flock fija el suyo.
+- Había que liberar el puerto 80 (`brew services stop httpd`). PostgreSQL de Homebrew ocupaba el
+  5432 y el puerto de PostgreSQL de Flock no se desplaza solo, así que se fijó en
+  `~/Library/Application Support/Flock/config.json` (`{"ports": {"postgres": 5433}}`) antes de
+  instalarlo; MariaDB de Flock va en el 3307 (`--port 3307`). Conviven con las de Homebrew.
+- Comprobado en esa instalación: DNS de `*.test`, certificado aceptado por el Llavero
+  (`security verify-cert`), `flock pin php` con 8.3, 8.4 y 8.5 (cada una responde con su versión),
+  `php artisan migrate` contra PostgreSQL y MariaDB de Flock y contra SQLite, correo de Laravel en
+  el SMTP de Flock (`flock mail`), `dump()` y eventos (consultas, vistas, peticiones) capturados por
+  el agente, Xdebug en una petición web con la cookie `XDEBUG_SESSION` (conecta al 9003) y
+  `flock share` (la URL pública de Cloudflare sirvió la app con 200; cloudflared 2026.10.7 es
+  `x86_64` y conserva la firma de Cloudflare). La ventana *Mail*, la de *Dumps* y el candado HTTPS
+  del navegador se revisaron a ojo.
+- El proyecto de prueba exige PHP >= 8.4.1 en `vendor/` aunque su `composer.json` diga `^8.3`: con
+  PHP 8.3 responde 500 porque `platform_check.php` de Composer se niega, no por Flock.
+- `flock share` ejecuta `npm run build` en el proyecto y copia la URL al portapapeles.
+- `flock debug` no cargaba Xdebug (fallo de Flock, no de Intel): su entorno llevaba dos
+  `PHP_INI_SCAN_DIR` y `getenv()` devuelve el primero. Corregido en `internal/cli/services.go`, con
+  prueba en `internal/cli/debug_test.go`. La app ya instalada conserva el CLI anterior hasta que
+  se recompile con `make app` y se vuelva a copiar a `/Applications`.
