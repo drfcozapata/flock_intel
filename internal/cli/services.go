@@ -120,9 +120,17 @@ func newDebugCommand() *cobra.Command {
 			if !php.XdebugAvailable(s.root, minor) {
 				return fmt.Errorf("PHP %s was installed without Xdebug — reinstall it from a newer build", minor)
 			}
-			return execReplace(path, argv, envutil.Merge(os.Environ(), append(env, php.DebugEnv(s.root, minor)...)))
+			return execReplace(path, argv, debugEnviron(os.Environ(), env, php.DebugEnv(s.root, minor)))
 		},
 	}
+}
+
+// debugEnviron is the environment `flock debug` starts PHP with: the process's, then the tool's
+// (CLIEnv), then the debug one (DebugEnv). Two merges, because Merge keeps every override as
+// given: one list holding both PHP_INI_SCAN_DIRs would leave the CLI's first, where getenv()
+// finds it, and Xdebug would never load.
+func debugEnviron(base, tool, debug []string) []string {
+	return envutil.Merge(envutil.Merge(base, tool), debug)
 }
 
 func newDumpsCommand() *cobra.Command {
